@@ -153,8 +153,8 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
     };
 
     return (
-        <div style={{ marginTop: 32, height: '1080px' }}>
-            <Line data={chartConfig} options={options} />
+        <div style={{marginTop: 32, height: '80vh'}}>
+            <Line data={chartConfig} options={options}/>
         </div>
     );
 };
