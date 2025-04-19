@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import statusMap from '../config/statusConfig';
 import { Line } from 'react-chartjs-2';
 import {
@@ -18,20 +18,28 @@ import 'chartjs-adapter-date-fns';
 ChartJS.register(TimeScale, PointElement, LineElement, Tooltip, Legend, LinearScale, CategoryScale, Filler, zoomPlugin);
 
 const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
-    const filteredRawData = rawData.filter(d => visibleStatuses.includes(d.status));
+    const [focusedLine, setFocusedLine] = useState(null);
 
     const reverseMap = Object.fromEntries(
         Object.entries(statusMap).map(([k, v]) => [v, k])
     );
-    const statusLabels = visibleStatuses.filter(status => statusMap[status]).sort((a, b) => statusMap[a] - statusMap[b]);
+
+    const statusLabels = visibleStatuses
+        .filter(status => statusMap[status])
+        .sort((a, b) => statusMap[a] - statusMap[b]);
 
     const grouped = {};
-    const durations = {};
+    const filteredRawData = rawData.filter(d => visibleStatuses.includes(d.status));
 
     filteredRawData.forEach(d => {
         if (!grouped[d.issueKey]) grouped[d.issueKey] = [];
         grouped[d.issueKey].push({ x: d.date, status: d.status });
     });
+
+    const generateColor = (i) => {
+        const hue = (i * 137.508) % 360;
+        return `hsl(${hue}, 70%, 50%)`;
+    };
 
     const datasets = Object.entries(grouped).map(([issueKey, points], i) => {
         points.sort((a, b) => a.x - b.x);
@@ -40,34 +48,28 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
         for (let j = 0; j < points.length; j++) {
             const current = points[j];
             const next = points[j + 1];
-            let duration = null;
-
-            if (next) {
-                duration = (next.x - current.x) / (1000 * 60 * 60 * 24 * 7); // weeks
-            }
+            const duration = next ? (next.x - current.x) / (1000 * 60 * 60 * 24 * 7) : null;
 
             dataPoints.push({
                 x: current.x,
-                y: current.status, // ✅ use actual status string for category Y-axis
+                y: current.status,
                 duration,
                 status: current.status
             });
         }
 
-        const generateColor = (i) => {
-            const hue = (i * 137.508) % 360;
-            return `hsl(${hue}, 70%, 50%)`;
-        };
+        const isDimmed = focusedLine && focusedLine !== issueKey;
 
         return {
             label: issueKey,
             data: dataPoints,
             fill: false,
             tension: 0.4,
-            borderColor: generateColor(i),
-            backgroundColor: generateColor(i),
-            borderWidth: 2,
-            pointRadius: 3
+            borderColor: isDimmed ? '#ccc' : generateColor(i),
+            backgroundColor: isDimmed ? '#ccc' : generateColor(i),
+            borderWidth: isDimmed ? 1 : 2,
+            pointRadius: isDimmed ? 2 : 3,
+            hidden: false
         };
     });
 
@@ -75,17 +77,24 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
         labels: [],
         datasets
     };
+    chartConfig.datasets = datasets;
 
     const options = {
         responsive: true,
         maintainAspectRatio: false,
+        onClick: (event, elements, chart) => {
+            if (elements.length > 0) {
+                const datasetIndex = elements[0].datasetIndex;
+                const label = chart.data.datasets[datasetIndex].label;
+                setFocusedLine(label);
+            } else {
+                setFocusedLine(null); // reset if click outside
+            }
+        },
         plugins: {
             legend: {
                 position: 'top',
-                labels: {
-                    boxWidth: 16,
-                    font: { size: 10 }
-                }
+                labels: { boxWidth: 16, font: { size: 10 } }
             },
             tooltip: {
                 callbacks: {
@@ -102,29 +111,10 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
                             : ` (${point.status})`;
                         return `${context.dataset.label}${durationText}`;
                     }
-                },
-                bodyFont: {
-                    size: 20, // 🔥 Bigger font size
-                    weight: 'bold'
-                },
-                titleFont: {
-                    size: 18,
-                    weight: 'bold'
-                },
-                padding: 16,         // ⬅️ increase inner spacing
-                boxPadding: 12,      // ⬅️ space between colored dot & text
-                displayColors: true,
-                usePointStyle: true,
-                multiKeyBackground: '#fff',
-                backgroundColor: 'rgba(0, 0, 0, 0.95)', // darker for contrast
-                cornerRadius: 8,     // rounded edges
-                caretPadding: 10     // spacing between point and tooltip
+                }
             },
             zoom: {
-                pan: {
-                    enabled: true,
-                    mode: 'x'
-                },
+                pan: { enabled: true, mode: 'x' },
                 zoom: {
                     wheel: { enabled: true },
                     pinch: { enabled: true },
@@ -136,8 +126,12 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
             x: {
                 type: 'time',
                 time: {
-                    unit: 'month',
-                    tooltipFormat: 'MMM yyyy'
+                    unit: 'day',
+                    tooltipFormat: 'dd MMM yyyy',
+                    displayFormats: {
+                        day: 'dd MMM',
+                        month: 'MMM yyyy'
+                    }
                 },
                 title: {
                     display: true,
@@ -159,7 +153,7 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
     };
 
     return (
-        <div style={{ marginTop: 32, height: `${visibleStatuses.length * 40}px` }}>
+        <div style={{ marginTop: 32, height: '1080px' }}>
             <Line data={chartConfig} options={options} />
         </div>
     );
