@@ -48,7 +48,7 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
 
             dataPoints.push({
                 x: current.x,
-                y: statusMap[current.status],
+                y: current.status, // ✅ use actual status string for category Y-axis
                 duration,
                 status: current.status
             });
@@ -89,12 +89,36 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
             },
             tooltip: {
                 callbacks: {
+                    title: (context) => {
+                        const point = context[0].raw;
+                        return new Date(point.x).toLocaleDateString('en-GB', {
+                            day: 'numeric', month: 'short', year: 'numeric'
+                        });
+                    },
                     label: (context) => {
                         const point = context.raw;
-                        const durationText = point.duration != null ? ` (${point.status}: ${point.duration.toFixed(1)} weeks)` : '';
+                        const durationText = point.duration != null
+                            ? ` (${point.duration.toFixed(1)} weeks in ${point.status})`
+                            : ` (${point.status})`;
                         return `${context.dataset.label}${durationText}`;
                     }
-                }
+                },
+                bodyFont: {
+                    size: 20, // 🔥 Bigger font size
+                    weight: 'bold'
+                },
+                titleFont: {
+                    size: 18,
+                    weight: 'bold'
+                },
+                padding: 16,         // ⬅️ increase inner spacing
+                boxPadding: 12,      // ⬅️ space between colored dot & text
+                displayColors: true,
+                usePointStyle: true,
+                multiKeyBackground: '#fff',
+                backgroundColor: 'rgba(0, 0, 0, 0.95)', // darker for contrast
+                cornerRadius: 8,     // rounded edges
+                caretPadding: 10     // spacing between point and tooltip
             },
             zoom: {
                 pan: {
