@@ -23,36 +23,53 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
     const reverseMap = Object.fromEntries(
         Object.entries(statusMap).map(([k, v]) => [v, k])
     );
-    const statusLabels = visibleStatuses
-        .filter(status => statusMap[status])
-        .sort((a, b) => statusMap[a] - statusMap[b]);
+    const statusLabels = visibleStatuses.filter(status => statusMap[status]).sort((a, b) => statusMap[a] - statusMap[b]);
 
     const grouped = {};
+    const durations = {};
+
     filteredRawData.forEach(d => {
         if (!grouped[d.issueKey]) grouped[d.issueKey] = [];
-        if (statusMap[d.status]) {
-            grouped[d.issueKey].push({
-                x: d.date,
-                y: statusMap[d.status]
-            });
-        }
+        grouped[d.issueKey].push({ x: d.date, status: d.status });
     });
 
-    const generateColor = (i) => {
-        const hue = (i * 137.508) % 360;
-        return `hsl(${hue}, 70%, 50%)`;
-    };
+    const datasets = Object.entries(grouped).map(([issueKey, points], i) => {
+        points.sort((a, b) => a.x - b.x);
+        const dataPoints = [];
 
-    const datasets = Object.entries(grouped).map(([issueKey, points], i) => ({
-        label: issueKey,
-        data: points,
-        fill: false,
-        tension: 0.4,
-        borderColor: generateColor(i),
-        backgroundColor: generateColor(i),
-        borderWidth: 2,
-        pointRadius: 3
-    }));
+        for (let j = 0; j < points.length; j++) {
+            const current = points[j];
+            const next = points[j + 1];
+            let duration = null;
+
+            if (next) {
+                duration = (next.x - current.x) / (1000 * 60 * 60 * 24 * 7); // weeks
+            }
+
+            dataPoints.push({
+                x: current.x,
+                y: statusMap[current.status],
+                duration,
+                status: current.status
+            });
+        }
+
+        const generateColor = (i) => {
+            const hue = (i * 137.508) % 360;
+            return `hsl(${hue}, 70%, 50%)`;
+        };
+
+        return {
+            label: issueKey,
+            data: dataPoints,
+            fill: false,
+            tension: 0.4,
+            borderColor: generateColor(i),
+            backgroundColor: generateColor(i),
+            borderWidth: 2,
+            pointRadius: 3
+        };
+    });
 
     const chartConfig = {
         labels: [],
@@ -73,8 +90,9 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
             tooltip: {
                 callbacks: {
                     label: (context) => {
-                        const y = context.parsed.y;
-                        return `${context.dataset.label}: ${reverseMap[y]}`;
+                        const point = context.raw;
+                        const durationText = point.duration != null ? ` (${point.status}: ${point.duration.toFixed(1)} weeks)` : '';
+                        return `${context.dataset.label}${durationText}`;
                     }
                 }
             },
@@ -107,7 +125,7 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
             y: {
                 type: 'category',
                 labels: statusLabels,
-                reverse: true, // ✅ Forces lowest status (OPEN) to the bottom
+                reverse: true,
                 title: {
                     display: true,
                     text: 'Status'
@@ -117,8 +135,8 @@ const LineChart = ({ rawData, visibleStatuses, startDate, endDate }) => {
     };
 
     return (
-        <div style={{marginTop: 32, height: `${visibleStatuses.length * 40}px`}}>
-            <Line data={chartConfig} options={options}/>
+        <div style={{ marginTop: 32, height: `${visibleStatuses.length * 40}px` }}>
+            <Line data={chartConfig} options={options} />
         </div>
     );
 };

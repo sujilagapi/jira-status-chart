@@ -83,12 +83,7 @@ function App() {
                 ))}
               </div>
 
-              <LineChart
-                  rawData={filteredData}
-                  visibleStatuses={visibleStatuses}
-                  startDate={startDate}
-                  endDate={endDate}
-              />
+              <LineChart rawData={filteredData} visibleStatuses={visibleStatuses} startDate={startDate} endDate={endDate} />
             </>
         )}
       </div>
