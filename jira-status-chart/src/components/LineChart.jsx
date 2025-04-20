@@ -32,7 +32,7 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
             label: status,
             data: [...points]
                 .sort((a, b) => new Date(a.date) - new Date(b.date))
-                .map(p => ({ x: p.date, y: p.count, avg: avg })),
+                .map(p => ({ x: p.date, y: p.count, avg })),
             borderColor: generateColor(i),
             backgroundColor: generateColor(i),
             fill: false,
@@ -40,11 +40,6 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
             pointRadius: 2
         };
     });
-
-    const chartConfig = {
-        labels: [],
-        datasets
-    };
 
     const options = {
         responsive: true,
@@ -83,8 +78,8 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
     };
 
     return (
-        <div style={{ marginTop: 32, height: '80vh' }}>
-            <Line data={chartConfig} options={options} />
+        <div style={{ width: '100%', height: '100%' }}>
+            <Line data={{ datasets }} options={options} />
         </div>
     );
 };

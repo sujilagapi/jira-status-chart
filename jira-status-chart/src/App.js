@@ -21,7 +21,6 @@ function App() {
           date: new Date(row['Date']),
           status: row['Status']
         }));
-
         processData(parsed, mode);
       }
     });
@@ -88,79 +87,82 @@ function App() {
 
   const handleModeChange = (newMode) => {
     setMode(newMode);
-    setDataByStatus({}); // Reset view
+    setDataByStatus({});
     setTimeout(() => {
       document.querySelector('input[type="file"]').dispatchEvent(new Event('change', { bubbles: true }));
     }, 0);
   };
 
   return (
-      <div style={{ padding: 32 }}>
-        <h2>📊 Jira Status Trends Over Time</h2>
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
+        {/* Controls */}
+        <div style={{ padding: '16px 32px', flexShrink: 0 }}>
+          <h2 style={{ margin: 0 }}>📊 Jira Status Trends Over Time</h2>
+          <input type="file" accept=".csv" onChange={handleFileUpload} style={{ marginTop: 10 }} />
 
-        <input type="file" accept=".csv" onChange={handleFileUpload} />
+          <div style={{ marginTop: 10 }}>
+            <label style={{ marginRight: 10 }}>From:</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+            <label style={{ margin: '0 10px 0 20px' }}>To:</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+          </div>
 
-        <div style={{ marginTop: 16 }}>
-          <label style={{ marginRight: 10 }}>From:</label>
-          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-          <label style={{ marginLeft: 20, marginRight: 10 }}>To:</label>
-          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
-        </div>
+          <div style={{ marginTop: 10 }}>
+            <label>
+              <input
+                  type="radio"
+                  checked={mode === 'cumulative'}
+                  onChange={() => handleModeChange('cumulative')}
+              />
+              📈 Cumulative
+            </label>
+            <label style={{ marginLeft: 20 }}>
+              <input
+                  type="radio"
+                  checked={mode === 'event'}
+                  onChange={() => handleModeChange('event')}
+              />
+              📍 Status Change Events
+            </label>
+          </div>
 
-        <div style={{ margin: '20px 0' }}>
-          <label>
-            <input
-                type="radio"
-                checked={mode === 'cumulative'}
-                onChange={() => handleModeChange('cumulative')}
-            />
-            📈 Status Duration (Cumulative)
-          </label>
-          <label style={{ marginLeft: 20 }}>
-            <input
-                type="radio"
-                checked={mode === 'event'}
-                onChange={() => handleModeChange('event')}
-            />
-            📍 Status Change Events Only
-          </label>
-        </div>
-
-        {Object.keys(dataByStatus).length > 0 && (
-            <>
-              <div style={{marginBottom: 16}}>
-                <h4>Select Statuses to Show</h4>
+          {Object.keys(dataByStatus).length > 0 && (
+              <div style={{ marginTop: 10 }}>
+                <h4>Select Statuses:</h4>
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
-                  maxHeight: '100px',
+                  maxHeight: '72px',
                   overflowY: 'auto',
                   padding: '8px',
                   border: '1px solid #ccc',
                   borderRadius: '6px',
                   background: '#f9f9f9'
                 }}>
-                  {Object.keys (dataByStatus).map (status => (
-                      <label key={status} style={{marginRight: 12, marginBottom: 6}}>
+                  {Object.keys(dataByStatus).map(status => (
+                      <label key={status} style={{ marginRight: 12, marginBottom: 6, fontSize: 13 }}>
                         <input
                             type="checkbox"
-                            checked={visibleStatuses.includes (status)}
-                            onChange={() => toggleStatus (status)}
+                            checked={visibleStatuses.includes(status)}
+                            onChange={() => toggleStatus(status)}
                         />
                         {status}
                       </label>
                   ))}
                 </div>
               </div>
+          )}
+        </div>
 
-              <LineChart
-                  dataByStatus={dataByStatus}
-                  visibleStatuses={visibleStatuses}
-                  startDate={startDate}
-                  endDate={endDate}
-              />
-            </>
-        )}
+        {/* Chart Area (full remaining height) */}
+        <div style={{ flex: 1, minHeight: 0 }}>
+          <LineChart
+              dataByStatus={dataByStatus}
+              visibleStatuses={visibleStatuses}
+              startDate={startDate}
+              endDate={endDate}
+          />
+        </div>
       </div>
   );
 }
