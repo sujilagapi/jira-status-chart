@@ -97,8 +97,8 @@ function App() {
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
         {/* Controls */}
         <div style={{ padding: '16px 32px', flexShrink: 0 }}>
-          <h2 style={{ margin: 0 }}>📊 Jira Status Trends Over Time</h2>
-          <input type="file" accept=".csv" onChange={handleFileUpload} style={{ marginTop: 10 }} />
+          <h2 style={{margin: 0, fontSize: '20px', color: '#333'}}>📊 Jira Status Trends Over Time</h2>
+          <input type="file" accept=".csv" onChange={handleFileUpload} style={{marginTop: 10}} />
 
           <div style={{ marginTop: 10 }}>
             <label style={{ marginRight: 10 }}>From:</label>
