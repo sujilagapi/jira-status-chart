@@ -64,10 +64,35 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
                 labels: { boxWidth: 16, font: { size: 11 } }
             },
             tooltip: {
+                backgroundColor: '#222',
+                cornerRadius: 8,
+                titleFont: {
+                    size: 20,
+                    weight: 'bold',
+                    family: 'Arial'
+                },
+                bodyFont: {
+                    size: 18,
+                    family: 'Arial'
+                },
+                padding: 16,
+                displayColors: true,
+                titleAlign: 'center',
+                bodyAlign: 'left',
                 callbacks: {
+                    title: (context) => {
+                        // Format title: e.g. "26 Nov 2024"
+                        const rawDate = context[0].raw.x;
+                        return new Date(rawDate).toLocaleDateString('en-GB', {
+                            day: '2-digit',
+                            month: 'short',
+                            year: 'numeric'
+                        });
+                    },
                     label: (context) => {
-                        const { x, y, avg } = context.raw;
-                        return `${context.dataset.label}: ${y} on ${new Date(x).toLocaleDateString()} (Avg: ${avg.toFixed(1)})`;
+                        const { y } = context.raw;
+                        const status = context.dataset.label;
+                        return `${y} ${status}`;
                     }
                 }
             },
