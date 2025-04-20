@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Papa from 'papaparse';
 import LineChart from './components/LineChart';
 import statusMap from './config/statusConfig';
@@ -9,7 +9,30 @@ function App() {
   const [endDate, setEndDate] = useState('');
   const [visibleStatuses, setVisibleStatuses] = useState(Object.keys(statusMap));
   const [mode, setMode] = useState('cumulative'); // "cumulative" | "event"
+  const [rawCsvData, setRawCsvData] = useState([]); // to reprocess when mode changes
 
+  // Load default CSV on startup
+  useEffect(() => {
+    fetch('/jira_status_over_time.csv')
+        .then(res => res.text())
+        .then(text => {
+          Papa.parse(text, {
+            header: true,
+            skipEmptyLines: true,
+            complete: (results) => {
+              const parsed = results.data.map(row => ({
+                issueKey: row['Issue Key'],
+                date: new Date(row['Date']),
+                status: row['Status']
+              }));
+              setRawCsvData(parsed);
+              processData(parsed, mode);
+            }
+          });
+        });
+  }, []);
+
+  // Upload file handler
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     Papa.parse(file, {
@@ -21,11 +44,13 @@ function App() {
           date: new Date(row['Date']),
           status: row['Status']
         }));
+        setRawCsvData(parsed);
         processData(parsed, mode);
       }
     });
   };
 
+  // Data processing logic
   const processData = (parsed, viewMode) => {
     const grouped = {};
     parsed.forEach(row => {
@@ -77,6 +102,14 @@ function App() {
     setVisibleStatuses(Object.keys(statusSeries));
   };
 
+  // Toggle mode and reprocess
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    if (rawCsvData.length > 0) {
+      processData(rawCsvData, newMode);
+    }
+  };
+
   const toggleStatus = (status) => {
     setVisibleStatuses(prev =>
         prev.includes(status)
@@ -85,20 +118,11 @@ function App() {
     );
   };
 
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-    setDataByStatus({});
-    setTimeout(() => {
-      document.querySelector('input[type="file"]').dispatchEvent(new Event('change', { bubbles: true }));
-    }, 0);
-  };
-
   return (
       <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        {/* Controls */}
         <div style={{ padding: '16px 32px', flexShrink: 0 }}>
-          <h2 style={{margin: 0, fontSize: '20px', color: '#333'}}>📊 Jira Status Trends Over Time</h2>
-          <input type="file" accept=".csv" onChange={handleFileUpload} style={{marginTop: 10}} />
+          <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>📊 Jira Status Trends Over Time</h2>
+          <input type="file" accept=".csv" onChange={handleFileUpload} style={{ marginTop: 10 }} />
 
           <div style={{ marginTop: 10 }}>
             <label style={{ marginRight: 10 }}>From:</label>
@@ -154,7 +178,6 @@ function App() {
           )}
         </div>
 
-        {/* Chart Area (full remaining height) */}
         <div style={{ flex: 1, minHeight: 0 }}>
           <LineChart
               dataByStatus={dataByStatus}
