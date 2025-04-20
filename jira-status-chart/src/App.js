@@ -4,19 +4,10 @@ import LineChart from './components/LineChart';
 import statusMap from './config/statusConfig';
 
 function App() {
-  const [rawData, setRawData] = useState([]);
-  const [filteredData, setFilteredData] = useState([]);
+  const [dataByStatus, setDataByStatus] = useState({});
   const [startDate, setStartDate] = useState('2024-01-01');
   const [endDate, setEndDate] = useState('');
   const [visibleStatuses, setVisibleStatuses] = useState(Object.keys(statusMap));
-
-  const toggleStatus = (status) => {
-    setVisibleStatuses(prev =>
-        prev.includes(status)
-            ? prev.filter(s => s !== status)
-            : [...prev, status]
-    );
-  };
 
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
@@ -30,48 +21,75 @@ function App() {
           status: row['Status']
         }));
 
-        setRawData(parsed);
+        const grouped = {};
+        parsed.forEach(row => {
+          if (!grouped[row.issueKey]) grouped[row.issueKey] = [];
+          grouped[row.issueKey].push(row);
+        });
 
-        const dates = parsed.map(d => d.date).sort((a, b) => a - b);
-        setStartDate('2024-01-01');
-        setEndDate(dates[dates.length - 1].toISOString().split('T')[0]);
+        const dailyStatusCounts = {};
 
-        filterByDate(parsed, '2024-01-01', dates[dates.length - 1]);
+        Object.values(grouped).forEach(issueRows => {
+          issueRows.sort((a, b) => a.date - b.date);
+          for (let i = 0; i < issueRows.length; i++) {
+            const current = issueRows[i];
+            const next = issueRows[i + 1];
+            const start = new Date(current.date);
+            const end = next ? new Date(next.date) : new Date();
+
+            let d = new Date(start);
+            while (d <= end) {
+              const key = d.toISOString().split('T')[0];
+              if (!dailyStatusCounts[key]) dailyStatusCounts[key] = {};
+              if (!dailyStatusCounts[key][current.status]) dailyStatusCounts[key][current.status] = 0;
+              dailyStatusCounts[key][current.status]++;
+              d.setDate(d.getDate() + 1);
+            }
+          }
+        });
+
+        const statusSeries = {};
+        Object.keys(dailyStatusCounts).forEach(date => {
+          Object.keys(dailyStatusCounts[date]).forEach(status => {
+            if (!statusSeries[status]) statusSeries[status] = [];
+            statusSeries[status].push({ date, count: dailyStatusCounts[date][status] });
+          });
+        });
+
+        setDataByStatus(statusSeries);
+
+        const allDates = Object.keys(dailyStatusCounts).sort();
+        setStartDate(allDates[0]);
+        setEndDate(allDates[allDates.length - 1]);
+        setVisibleStatuses(Object.keys(statusSeries)); // reset visible to loaded ones
       }
     });
   };
 
-  const filterByDate = (data, start, end) => {
-    const from = new Date(start);
-    const to = new Date(end);
-    const filtered = data.filter(item => item.date >= from && item.date <= to);
-    setFilteredData(filtered);
+  const toggleStatus = (status) => {
+    setVisibleStatuses(prev =>
+        prev.includes(status)
+            ? prev.filter(s => s !== status)
+            : [...prev, status]
+    );
   };
 
   return (
       <div style={{ padding: 32 }}>
-        <h2>📊 Jira Status Over Time</h2>
+        <h2>📈 Jira Status Trends Over Time</h2>
         <input type="file" accept=".csv" onChange={handleFileUpload} />
+        <div style={{ marginTop: 16 }}>
+          <label style={{ marginRight: 10 }}>From:</label>
+          <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
+          <label style={{ marginLeft: 20, marginRight: 10 }}>To:</label>
+          <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+        </div>
 
-        {rawData.length > 0 && (
+        {Object.keys(dataByStatus).length > 0 && (
             <>
               <div style={{ margin: '20px 0' }}>
-                <label style={{ marginRight: 10 }}>From:</label>
-                <input type="date" value={startDate} onChange={(e) => {
-                  setStartDate(e.target.value);
-                  filterByDate(rawData, e.target.value, endDate);
-                }} />
-
-                <label style={{ margin: '0 10px 0 20px' }}>To:</label>
-                <input type="date" value={endDate} onChange={(e) => {
-                  setEndDate(e.target.value);
-                  filterByDate(rawData, startDate, e.target.value);
-                }} />
-              </div>
-
-              <div style={{ marginBottom: 16 }}>
-                <h4>Select Statuses to Display</h4>
-                {Object.keys(statusMap).sort((a, b) => statusMap[a] - statusMap[b]).map(status => (
+                <h4>Select Statuses to Show</h4>
+                {Object.keys(dataByStatus).map(status => (
                     <label key={status} style={{ marginRight: 10 }}>
                       <input
                           type="checkbox"
@@ -83,7 +101,12 @@ function App() {
                 ))}
               </div>
 
-              <LineChart rawData={filteredData} visibleStatuses={visibleStatuses} startDate={startDate} endDate={endDate} />
+              <LineChart
+                  dataByStatus={dataByStatus}
+                  visibleStatuses={visibleStatuses}
+                  startDate={startDate}
+                  endDate={endDate}
+              />
             </>
         )}
       </div>

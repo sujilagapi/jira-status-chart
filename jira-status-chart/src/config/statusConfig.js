@@ -2,11 +2,11 @@
 
 const statusMap = {
     "OPEN": 1,
-   // "TO-DO": 2,
+   "TO-DO": 2,
     "In Progress": 3,
     //"IN PROGRESS": 4,
-    // "IN REVIEW": 5,
-    // "REVIEW": 6,
+   // "IN REVIEW": 5,
+   // "REVIEW": 6,
     "APPLE REVIEW": 7,
     "APPROVED": 8,
     "APPROVED WITH SDK": 9,
