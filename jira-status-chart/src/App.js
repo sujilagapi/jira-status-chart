@@ -3,15 +3,64 @@ import Papa from 'papaparse';
 import LineChart from './components/LineChart';
 import statusMap from './config/statusConfig';
 
+const styles = {
+  label: {
+    fontSize: '14px',
+    fontFamily: 'Inter, sans-serif',
+    color: '#333'
+  },
+  sectionTitle: {
+    fontSize: '16px',
+    fontWeight: 600,
+    marginBottom: 8,
+    fontFamily: 'Inter, sans-serif'
+  },
+  input: {
+    fontSize: '14px',
+    padding: '6px 10px',
+    borderRadius: 6,
+    border: '1px solid #ccc',
+    outline: 'none',
+    fontFamily: 'Inter, sans-serif'
+  },
+  radioGroup: {
+    display: 'flex',
+    gap: '20px',
+    marginTop: 10,
+    alignItems: 'center'
+  },
+  fileInput: {
+    padding: '10px',
+    border: '2px dashed #ccc',
+    borderRadius: 8,
+    backgroundColor: '#fafafa',
+    width: '100%',
+    marginTop: 10,
+    cursor: 'pointer',
+    fontFamily: 'Inter, sans-serif'
+  },
+  checkboxContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    maxHeight: '72px',
+    overflowY: 'auto',
+    padding: '8px',
+    border: '1px solid #ccc',
+    borderRadius: '6px',
+    background: '#f9f9f9',
+    fontSize: 13,
+    fontFamily: 'Inter, sans-serif'
+  }
+};
+
 function App() {
   const [dataByStatus, setDataByStatus] = useState({});
   const [startDate, setStartDate] = useState('2024-01-01');
   const [endDate, setEndDate] = useState('');
   const [visibleStatuses, setVisibleStatuses] = useState(Object.keys(statusMap));
-  const [mode, setMode] = useState('cumulative'); // "cumulative" | "event"
-  const [rawCsvData, setRawCsvData] = useState([]); // to reprocess when mode changes
+  const [mode, setMode] = useState('cumulative');
+  const [rawCsvData, setRawCsvData] = useState([]);
 
-  // Load default CSV on startup
   useEffect(() => {
     fetch('/jira_status_over_time.csv')
         .then(res => res.text())
@@ -32,7 +81,6 @@ function App() {
         });
   }, []);
 
-  // Upload file handler
   const handleFileUpload = (e) => {
     const file = e.target.files[0];
     Papa.parse(file, {
@@ -50,7 +98,6 @@ function App() {
     });
   };
 
-  // Data processing logic
   const processData = (parsed, viewMode) => {
     const grouped = {};
     parsed.forEach(row => {
@@ -59,7 +106,6 @@ function App() {
     });
 
     const dailyStatusCounts = {};
-
     Object.values(grouped).forEach(issueRows => {
       issueRows.sort((a, b) => a.date - b.date);
       for (let i = 0; i < issueRows.length; i++) {
@@ -102,14 +148,6 @@ function App() {
     setVisibleStatuses(Object.keys(statusSeries));
   };
 
-  // Toggle mode and reprocess
-  const handleModeChange = (newMode) => {
-    setMode(newMode);
-    if (rawCsvData.length > 0) {
-      processData(rawCsvData, newMode);
-    }
-  };
-
   const toggleStatus = (status) => {
     setVisibleStatuses(prev =>
         prev.includes(status)
@@ -118,21 +156,29 @@ function App() {
     );
   };
 
-  return (
-      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column' }}>
-        <div style={{ padding: '16px 32px', flexShrink: 0 }}>
-          <h2 style={{ margin: 0, fontSize: '20px', color: '#333' }}>📊 Jira Status Trends Over Time</h2>
-          <input type="file" accept=".csv" onChange={handleFileUpload} style={{ marginTop: 10 }} />
+  const handleModeChange = (newMode) => {
+    setMode(newMode);
+    if (rawCsvData.length > 0) {
+      processData(rawCsvData, newMode);
+    }
+  };
 
-          <div style={{ marginTop: 10 }}>
-            <label style={{ marginRight: 10 }}>From:</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} />
-            <label style={{ margin: '0 10px 0 20px' }}>To:</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} />
+  return (
+      <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ padding: '16px 32px', flexShrink: 0 }}>
+          <h2 style={{ margin: 0, fontSize: '22px', color: '#1f2937' }}>📊 Jira Status Trends Over Time</h2>
+
+          <input type="file" accept=".csv" onChange={handleFileUpload} style={styles.fileInput} />
+
+          <div style={{ marginTop: 12 }}>
+            <label style={{ marginRight: 10, ...styles.label }}>From:</label>
+            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} style={styles.input} />
+            <label style={{ margin: '0 10px 0 20px', ...styles.label }}>To:</label>
+            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} style={styles.input} />
           </div>
 
-          <div style={{ marginTop: 10 }}>
-            <label>
+          <div style={styles.radioGroup}>
+            <label style={styles.label}>
               <input
                   type="radio"
                   checked={mode === 'cumulative'}
@@ -140,31 +186,22 @@ function App() {
               />
               📈 Cumulative
             </label>
-            <label style={{ marginLeft: 20 }}>
+            <label style={styles.label}>
               <input
                   type="radio"
                   checked={mode === 'event'}
                   onChange={() => handleModeChange('event')}
               />
-              📍 Status Change Events
+              📍 Events Only
             </label>
           </div>
 
           {Object.keys(dataByStatus).length > 0 && (
-              <div style={{ marginTop: 10 }}>
-                <h4>Select Statuses:</h4>
-                <div style={{
-                  display: 'flex',
-                  flexWrap: 'wrap',
-                  maxHeight: '72px',
-                  overflowY: 'auto',
-                  padding: '8px',
-                  border: '1px solid #ccc',
-                  borderRadius: '6px',
-                  background: '#f9f9f9'
-                }}>
+              <div style={{ marginTop: 16 }}>
+                <h4 style={styles.sectionTitle}>Select Statuses:</h4>
+                <div style={styles.checkboxContainer}>
                   {Object.keys(dataByStatus).map(status => (
-                      <label key={status} style={{ marginRight: 12, marginBottom: 6, fontSize: 13 }}>
+                      <label key={status} style={{ marginRight: 12, marginBottom: 6 }}>
                         <input
                             type="checkbox"
                             checked={visibleStatuses.includes(status)}
