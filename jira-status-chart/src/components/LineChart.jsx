@@ -46,6 +46,11 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
         };
     });
 
+    const minTime = new Date(startDate).getTime();
+    const maxTime = new Date(endDate).getTime();
+    const minZoomRange = 24 * 60 * 60 * 1000;             // 1 day
+    const maxZoomRange = 365 * 24 * 60 * 60 * 1000;       // 1 year
+
     const options = {
         responsive: true,
         maintainAspectRatio: false,
@@ -81,7 +86,6 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
                 bodyAlign: 'left',
                 callbacks: {
                     title: (context) => {
-                        // Format title: e.g. "26 Nov 2024"
                         const rawDate = context[0].raw.x;
                         return new Date(rawDate).toLocaleDateString('en-GB', {
                             day: '2-digit',
@@ -97,20 +101,62 @@ const LineChart = ({ dataByStatus, visibleStatuses, startDate, endDate }) => {
                 }
             },
             zoom: {
-                pan: { enabled: true, mode: 'x' },
+                pan: {
+                    enabled: true,
+                    mode: 'x'
+                },
                 zoom: {
                     wheel: { enabled: true },
                     pinch: { enabled: true },
-                    mode: 'x'
+                    mode: 'x',
+                    limits: {
+                        x: {
+                            min: minTime,
+                            max: maxTime,
+                            minRange: minZoomRange,
+                            maxRange: maxZoomRange
+                        }
+                    },
+                    onZoom: ({ chart }) => {
+                        const xScale = chart.scales.x;
+                        const range = xScale.max - xScale.min;
+
+                        if (range < minZoomRange) {
+                            const center = (xScale.min + xScale.max) / 2;
+                            xScale.options.min = center - minZoomRange / 2;
+                            xScale.options.max = center + minZoomRange / 2;
+                            chart.update();
+                            return false;
+                        }
+
+                        if (range > maxZoomRange) {
+                            const center = (xScale.min + xScale.max) / 2;
+                            xScale.options.min = center - maxZoomRange / 2;
+                            xScale.options.max = center + maxZoomRange / 2;
+                            chart.update();
+                            return false;
+                        }
+                    }
                 }
             }
         },
         scales: {
             x: {
                 type: 'time',
-                title: { display: true, text: 'Date' },
-                min: new Date(startDate).getTime(),
-                max: new Date(endDate).getTime()
+                time: {
+                    unit: 'day',
+                    tooltipFormat: 'dd MMM yyyy',
+                    displayFormats: {
+                        day: 'dd MMM',
+                        month: 'MMM yyyy'
+                    }
+                },
+                title: {
+                    display: true,
+                    text: 'Date'
+                },
+                min: minTime,
+                max: maxTime
             },
             y: {
                 beginAtZero: true,
