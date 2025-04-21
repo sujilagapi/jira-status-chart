@@ -197,15 +197,50 @@ function App() {
           </div>
 
           {Object.keys(dataByStatus).length > 0 && (
-              <div style={{ marginTop: 16 }}>
+              <div style={{marginTop: 16}}>
                 <h4 style={styles.sectionTitle}>Select Statuses:</h4>
+                <div style={{
+                  display: 'flex',
+                  justifyContent: 'flex-end',  // 👈 ensures left alignment
+                  gap: 12,
+                  marginBottom: 8
+                }}>
+                  <button
+                      onClick={() => setVisibleStatuses (Object.keys (dataByStatus))}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        borderRadius: 6,
+                        backgroundColor: '#f0f8ff',
+                        border: '1px solid #007bff',
+                        color: '#007bff',
+                        cursor: 'pointer'
+                      }}
+                  >
+                    ✅ Select All
+                  </button>
+                  <button
+                      onClick={() => setVisibleStatuses ([])}
+                      style={{
+                        padding: '6px 12px',
+                        fontSize: '13px',
+                        borderRadius: 6,
+                        backgroundColor: '#fff0f0',
+                        border: '1px solid #dc3545',
+                        color: '#dc3545',
+                        cursor: 'pointer'
+                      }}
+                  >
+                    ❌ Clear Selection
+                  </button>
+                </div>
                 <div style={styles.checkboxContainer}>
-                  {Object.keys(dataByStatus).map(status => (
-                      <label key={status} style={{ marginRight: 12, marginBottom: 6 }}>
+                  {Object.keys (dataByStatus).map (status => (
+                      <label key={status} style={{marginRight: 12, marginBottom: 6}}>
                         <input
                             type="checkbox"
-                            checked={visibleStatuses.includes(status)}
-                            onChange={() => toggleStatus(status)}
+                            checked={visibleStatuses.includes (status)}
+                            onChange={() => toggleStatus (status)}
                         />
                         {status}
                       </label>
@@ -215,7 +250,7 @@ function App() {
           )}
         </div>
 
-        <div style={{ flex: 1, minHeight: 0 }}>
+        <div style={{flex: 1, minHeight: 0}}>
           <LineChart
               dataByStatus={dataByStatus}
               visibleStatuses={visibleStatuses}
